@@ -1,5 +1,6 @@
 from flask import *
-import hashlib
+import bcrypt
+from PIL import Image
 from models import *
 
 app = Flask(__name__) 
@@ -18,7 +19,9 @@ def add_user():
     nickname = request.json['nickname'] 
     email = request.json['email']
     senha_plain = request.json['senha'] 
-    senha = hashlib.md5(senha_plain.encode())
+    senha_plain = senha_plain.encode(encoding='UTF-8')
+    salt = bcrypt.gensalt()
+    senha = bcrypt.hashpw(senha_plain, salt)
 
     if any(x.email == email for x in usuarios):
         result = "Email já castrado"
@@ -80,13 +83,15 @@ def get_redirect(user, id):
     elif True:
         for x in usuarios:
             if x.nickname == user:
-                for l, p in x.encurtadas.items():
-                    if p == id:
-                        return redirect(l)
+                user = x
+                break
+            else:
+                return "Usuário não encontrado"
+        for l, p in user.encurtadas.items():
+            if p == id:
+                return redirect(l)
     else:
-        result = "Não há cadastros com essa url"
-        return result
-    return "Erro"
+        return "Não há cadastros com essa url"
 
 @app.route("/p/<nick>/<id>", methods=["GET", "DELETE"])
 def r(nick, id):
@@ -97,27 +102,61 @@ def r(nick, id):
                     return redirect(l)
 
 @app.route("/personalizar",methods = ['POST', 'GET'])
-def personalizar():
+def personalizar_url():
     return render_template("personalizarUrl.html")
 
 @app.route("/check", methods=["POST"])
-def check():
+def verificar_texto():
     url = request.form['url']
     r_nickname = request.form['Nickname']
     senha = request.form['Senha']
+    senha = senha.encode(encoding='UTF-8')
     texto = request.form['Texto']
     new = ''
+
     for x in usuarios:
         if x.nickname == r_nickname:
-            if url in x.encurtadas:
-                if texto in x.encurtadas.values():
-                    return "Você já possui uma url com essa personalização"
-            else:
-                new = urllib.parse.quote(texto)
-                x.encurtadas[url] = new
-                return "Sua url personalizada é http://localhost:5000/{}/{}".format(r_nickname, new)
-            # else:
-            #     return "Senha incorreta"
+            user = x
+            break
         else:
-            return "Usuário não encontrado"
-    
+            return "Usuário não encontrado, tente novamente"
+
+    if bcrypt.checkpw(senha, user.senha):
+        if url in user.encurtadas:
+            if texto in user.encurtadas.values():
+                return "Você já possui uma url com essa personalização"
+        else:
+            new = urllib.parse.quote(texto)
+            user.encurtadas[url] = new
+            return "Sua url personalizada é http://localhost:5000/{}/{}".format(r_nickname, new)
+    else:
+        return "Senha errada, tente novamente"
+
+@app.route('/trocarfoto', methods = ["GET"])
+def trocar_foto():
+    return render_template("trocar_foto.html")
+
+@app.route("/checksize", methods = ["POST"])
+def verificar_tamanho():
+    foto = request.files.get('foto', '')
+    r_nickname = request.form['Nickname']
+    senha = request.form['Senha']
+    senha = senha.encode(encoding='UTF-8')
+    user = None
+    for x in usuarios:
+        if x.nickname == r_nickname:
+            user = x
+            break
+        else:
+            return "Usuário não encontrado, tente novamente"
+
+    img = Image.open(foto)
+    width, height = img.size
+    if width > 500 or height > 500:
+        return "Imagem fora dos padrões, a imagem deve ser no máximo 200x200"
+    else:
+        if bcrypt.checkpw(senha, user.senha):
+            user.foto = img
+            return "Sucesso"
+        else:
+            return "Senha incorreta, tente novamente"

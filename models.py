@@ -3,13 +3,14 @@ import urllib.parse
 
 
 class Usuario:
-    def __init__(self, nome, nickname, email, senha, encurtadas = {}):
+    def __init__(self, nome, nickname, email, senha, encurtadas = {}, foto = None):
         self.nome = nome
         self.nickname = nickname
         self.email = email
         self.senha = senha
         self.urls = []
         self.encurtadas = encurtadas
+        self.foto = foto
 
     def cadastrarUrl(self, id, url, categoria = ''):
         self.urls.append(Url(id, url))
