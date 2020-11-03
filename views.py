@@ -123,13 +123,17 @@ def personalizar_url():
     texto = request.form['Texto']
     new = ''
     user = procurar_usuario(r_nickname)
-    url =  procurar_url(user, r_url)
     if user is not None:
+        url =  procurar_url(user, r_url)
         if autenticar_usuario(user, senha): 
             if url is not None:
                 if url in user.encurtadas:
-                    if texto == user.encurtadas[url].personalização:
+                    if texto == user.encurtadas[url].getPersonalização():
                         return "Você já possui uma url com essa personalização"
+                    else:
+                        new = urllib.parse.quote(texto)
+                        user.encurtadas[url].personalização = new
+                        return "Sua url personalizada é http://localhost:5000/{}/{}".format(r_nickname, new)
                 else:
                     new = urllib.parse.quote(texto)
                     urlP = UrlPersonalizada(url.getId(), url.getUrl(), new)
