@@ -12,17 +12,39 @@ class Usuario:
         self.encurtadas = encurtadas
         self.foto = foto
 
-    def cadastrarUrl(self, id, url, categoria = ''):
-        self.urls.append(Url(id, url))
+    def cadastrarUrl(self, id_, url):
+        self.urls.append(Url(id_, url))
     
-    def encurtarUrl(self, id):
-        short_url = encode(int(id))
+    def encurtarUrl(self, id_):
+        short_url = encode(int(id_))
         return short_url
-        
+    
+    def getSenha(self):
+        return self.senha
+
+    def getNick(self):
+        return self.nickname
+    
+    def getUrls(self):
+        return self.urls
 class Url:
-    def __init__(self, id, url, acessos = 0):
+    def __init__(self, id_, url):
         self.url = url
-        self.acessos = acessos
+        self.id_ = id_
+    def getId(self):
+        return self.id_
+    
+    def getUrl(self):
+        return self.url
+
+class UrlPersonalizada(Url):
+    def __init__(self, id, url, personalização):
+        self.id = id
+        self.url = url
+        self.personalização = personalização
+    
+    def getPersonalização(self):
+        return self.personalização
 
 class QrCode:
     def __init__(self, url, tamanho):
