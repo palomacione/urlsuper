@@ -27,6 +27,8 @@ class Usuario:
     
     def getUrls(self):
         return self.urls
+
+
 class Url:
     def __init__(self, id_, url):
         self.url = url
@@ -37,6 +39,7 @@ class Url:
     def getUrl(self):
         return self.url
 
+
 class UrlPersonalizada(Url):
     def __init__(self, id, url, personalização):
         self.id = id
@@ -45,6 +48,7 @@ class UrlPersonalizada(Url):
     
     def getPersonalização(self):
         return self.personalização
+
 
 class QrCode:
     def __init__(self, url, tamanho):
@@ -55,3 +59,15 @@ class QrCode:
         data = urllib.parse.quote(url)
         qrcode = 'https://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(data, tamanho, tamanho)
         return qrcode
+
+
+class UrlEncurtada():
+    def __init__(self, url, encurtamento):
+        self.encurtamento = encurtamento
+        self.url = url
+
+
+class Categoria:
+    def __init__(self, nome):
+        self.nome = nome
+
