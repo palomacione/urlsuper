@@ -3,7 +3,7 @@ import urllib.parse
 
 
 class Usuario:
-    def __init__(self, nome, nickname, email, senha, encurtadas = {}, foto = None):
+    def __init__(self, nome, nickname, email, senha, encurtadas = {}, foto = None, acessos = 0):
         self.nome = nome
         self.nickname = nickname
         self.email = email
@@ -11,7 +11,7 @@ class Usuario:
         self.urls = []
         self.encurtadas = encurtadas
         self.foto = foto
-
+        self.acessos = acessos
     def cadastrarUrl(self, id_, url):
         self.urls.append(Url(id_, url))
     
@@ -30,14 +30,19 @@ class Usuario:
 
 
 class Url:
-    def __init__(self, id_, url):
+    def __init__(self, url, nickanme, qrcode = None):
         self.url = url
-        self.id_ = id_
-    def getId(self):
-        return self.id_
+        self.nickname = nickanme
+        self.qrcode = qrcode
     
     def getUrl(self):
         return self.url
+
+
+class CategoriaUrl:
+    def __init__(self, url, categoria):
+        self.url = url
+        self.categoria = categoria
 
 
 class UrlPersonalizada(Url):
@@ -61,13 +66,14 @@ class QrCode:
         return qrcode
 
 
-class UrlEncurtada():
+class UrlEncurtada(Url):
     def __init__(self, url, encurtamento):
         self.encurtamento = encurtamento
         self.url = url
 
 
 class Categoria:
-    def __init__(self, nome):
+    def __init__(self, nome, acessos = 0):
         self.nome = nome
+        self.acessos = acessos
 

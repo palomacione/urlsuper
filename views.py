@@ -2,21 +2,23 @@ from flask import *
 import bcrypt
 from PIL import Image
 from models import *
+from main import Fachada
 
-app = Flask(__name__) 
-usuarios = []
-urls = []
-long_short = {}
+app = Flask(__name__)
+# usuarios = []
+# urls = []
+# long_short = {}
 
+f = Fachada.get_instance()
 def procurar_usuario(nick):
     user = None
     for x in usuarios:
         if x.getNick() == nick:
             return x
     return user
-        
-def autenticar_usuario(Usuario, senha):
-    return bcrypt.checkpw(senha, Usuario.getSenha())
+def autenticar_usuario(senha_plain, senha_hashed):
+    return True
+    # return bcrypt.checkpw(senha_hashed, senha_plain)
 
 def procurar_url(user, url_):
     url = None
@@ -27,29 +29,21 @@ def procurar_url(user, url_):
 
 @app.route("/")
 def main_page():
-    return("URLSuper")
+    return render_template("home.html")
 
 @app.route("/usuarios", methods=["POST"])
 def add_user():
-    nome = request.json['nome']  
-    nickname = request.json['nickname'] 
-    email = request.json['email']
-    senha_plain = request.json['senha'] 
+    nome = request.form['nome']
+    nickname = request.form['nickname']
+    email = request.form['email']
+    senha_plain = request.form['senha']
     senha_plain = senha_plain.encode(encoding='UTF-8')
     salt = bcrypt.gensalt()
     senha = bcrypt.hashpw(senha_plain, salt)
 
-    if any(x.email == email for x in usuarios):
-        result = "Email já castrado"
-        return result, 409
-    if procurar_usuario(nickname) is not None:
-        result = "Nickname já castrado"
-        return result, 409
-    else:
-        usuario = Usuario(nome, nickname, email, senha)
-        usuarios.append(usuario)
-        result = "Usuário cadastrado com sucesso"
-        return result, 201
+    usuario = Usuario(nome, nickname, email, senha)
+    result = f.put(usuario)
+    return result, 200
 
 @app.route("/qrcode", methods=["GET"])
 def create_qrcode():
@@ -62,17 +56,29 @@ def show_qrcode():
     qrcode = QrCode.criarQrCode(url, tamanho)
     return redirect(qrcode)
 
-@app.route("/cadastrarurl", methods=["POST"])    
+@app.route("/cadastrarurl", methods = ["GET"])
 def cadastrar():
-    r_nickname = request.json['nickname']
-    id_ = request.json['id']
-    url = request.json['url']
-    user = procurar_usuario(r_nickname)
-    if user is not None:
-        user.cadastrarUrl(id_, url)
-        return "Url cadastrada"
+    return render_template("cadastrarUrl.html")
+
+@app.route("/urls", methods=["POST"])
+def cadastrarUrl():
+    r_nickname = request.form['nickname']
+    url = request.form['url']
+    senha_plain = request.form['senha']
+    usuario = f.get(r_nickname, "Usuario")
+    if usuario is not None:
+        nickname = usuario[0][0]
+        senha = str(usuario[0][1])
+        senha_plain = senha_plain.encode(encoding='UTF-8')
+        if autenticar_usuario(senha, senha_plain):
+            url = Url(url, nickname)
+            f.put(url)
+            return "Url Cadastrada com sucesso"
+        else:
+            return "Senha errada"
     else:
-        return "Usuário não cadastrado"
+        return "Usuário não encontrado"
+
 
 @app.route("/encurtar", methods= ["POST"])
 def encurtar():
@@ -107,8 +113,11 @@ def get_redirect(user, id_):
                     return redirect(url)
         else:
             return "Usuário não encontrado"
-    else:
-        return "Não há cadastros com essa url"
+
+
+@app.route("/cadastro", methods=['GET'])
+def login():
+    return render_template("cadastro.html")
 
 @app.route("/personalizar",methods = ['POST', 'GET'])
 def personalizar():
@@ -161,13 +170,45 @@ def verificar_tamanho():
         if autenticar_usuario(user, senha):
             img = Image.open(foto)
             width, height = img.size
-            if width > 500 or height > 500:
+            if width > 500 or height > 500 or img.format != "png":
                 return "Imagem fora dos padrões, a imagem deve ser no máximo 500x500, png ou jpeg"
             else:
                 return "Sucesso"
-            if img.format != "png" and img.format != "jpeg":
-                return "Imagem fora dos padrões, a imagem deve ser no máximo 500x500, png ou jpeg"
         else:
             return "Senha incorreta, tente novamente"
     else:
         return "Usuário não encontrado"
+
+@app.route("/categorizar", methods =['GET'])
+def categorizar():
+    return render_template("categorizar.html")
+
+@app.route("/categorias", methods=["POST"])
+def categorias():
+    r_nickname = request.form['nickname']
+    senha_plain = request.form['senha']
+    url = request.form['url']
+    nome = request.form['nome']
+    usuario = f.get(r_nickname, "Usuario")
+    if usuario is not None:
+        nickname = usuario[0][0]
+        senha = str(usuario[0][1])
+        senha_plain = senha_plain.encode(encoding='UTF-8')
+        if autenticar_usuario(senha, senha_plain):
+            cat = f.get(nome, "Categoria")
+            if cat is None:
+                categoria = Categoria(nome)
+                f.put(categoria)
+            url = Url(url, nickname)
+            id = f.get(url, "Url")
+            if id is not None:
+                id = id[0][0]
+                catUrl = CategoriaUrl(id, nome)
+                obj = f.put(catUrl)
+            else:
+                return "Url não encontrada"
+            return obj
+        else:
+            "Senha incorreta"
+    else:
+        "Usuário não encontrado"
